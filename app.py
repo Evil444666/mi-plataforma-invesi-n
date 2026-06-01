@@ -120,6 +120,55 @@ def buscar_y_ordenar_empresas(palabra_clave):
     except Exception:
         return []
 
-@st.cache_data(ttl=3600)  # Guarda el Top 10 en caché durante 1 hora para una carga veloz
+@st.cache_data(ttl=3600)
 def obtener_top_10_expertos():
-    # Lista
+    tickers_control = [
+        "AAPL", "MSFT", "NVDA", "AMZN", "META", "GOOGL", "TSLA", "LLY", "V", "TSM",
+        "AVGO", "NVO", "JPM", "WMT", "UNH", "ASML", "ORCL", "NFLX", "COST", "AMD"
+    ]
+    
+    lista_recomendados = []
+    
+    for ticker in tickers_control:
+        try:
+            t = yf.Ticker(ticker)
+            info = t.info
+            
+            precio_actual = info.get('currentPrice') or info.get('previousClose') or 1
+            precio_objetivo = info.get('targetMeanPrice') or precio_actual
+            potencial = ((precio_objetivo - precio_actual) / precio_actual) * 100
+            
+            rating = info.get('recommendationRating', 3.0) or 3.0
+            texto_rating = info.get('recommendationKey', 'Hold').upper().replace('_', ' ')
+            nombre = info.get('shortName') or info.get('longName') or ticker
+            
+            lista_recomendados.append({
+                "Ticker": ticker,
+                "Empresa": nombre,
+                "Precio Act.": f"${precio_actual:,.2f}",
+                "Obj. Expertos": f"${precio_objetivo:,.2f}",
+                "Potencial": potencial,
+                "Consenso": texto_rating,
+                "RatingNum": rating
+            })
+        except Exception:
+            continue
+            
+    df = pd.DataFrame(lista_recomendados)
+    if not df.empty:
+        df = df.sort_values(by=["RatingNum", "Potencial"], ascending=[True, False])
+        return df.head(10)
+    return pd.DataFrame()
+
+# =========================================================================
+# 🎛️ ESTRUCTURA APP: BARRA LATERAL
+# =========================================================================
+with st.sidebar:
+    st.markdown("""
+        <div style='display: flex; align-items: center; gap: 10px; margin-bottom: 25px;'>
+            <div style='background-color: #1f6feb; padding: 8px 12px; border-radius: 8px; color: white; font-weight: bold; font-size: 1.2rem;'>Q</div>
+            <div style='font-size: 1.2rem; font-weight: 800; color: white; letter-spacing: -0.5px;'>QUANTUM<span style='color:#1f6feb;'>SaaS</span></div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st
