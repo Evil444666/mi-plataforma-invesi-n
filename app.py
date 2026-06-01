@@ -59,6 +59,32 @@ st.markdown("""
         transform: translateY(-1px);
         box-shadow: 0px 4px 12px rgba(31, 111, 235, 0.3);
     }
+    /* Estilo para tablas mimetizadas */
+    .styled-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 15px 0;
+        font-size: 0.95rem;
+        background-color: #161b22;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid #30363d;
+    }
+    .styled-table th {
+        background-color: #21262d;
+        color: #58a6ff;
+        text-align: left;
+        padding: 12px 15px;
+        font-weight: 600;
+        border-bottom: 1px solid #30363d;
+    }
+    .styled-table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #21262d;
+    }
+    .styled-table tr:last-of-type td {
+        border-bottom: none;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -94,6 +120,54 @@ def buscar_y_ordenar_empresas(palabra_clave):
     except Exception:
         return []
 
+@st.cache_data(ttl=3600)  # Guarda el Top 10 en caché durante 1 hora para que cargue instantáneamente
+def obtener_top_10_expertos():
+    # Una lista de control con empresas líderes, tecnológicas, de salud y utilities para escanear consenso
+    tickers_control = [
+        "AAPL", "MSFT", "NVDA", "AMZN", "META", "GOOGL", "TSLA", "LLY", "V", "TSM",
+        "AVGO", "NVO", "JPM", "WMT", "UNH", "ASML", "ORCL", "NFLX", "COST", "AMD"
+    ]
+    
+    lista_recomendados = []
+    
+    for ticker in tickers_control:
+        try:
+            t = yf.Ticker(ticker)
+            info = t.info
+            
+            # Extraemos el consenso de los analistas de Wall Street
+            # targetMeanPrice: Precio objetivo medio / currentPrice: Precio actual
+            precio_actual = info.get('currentPrice') or info.get('previousClose') or 1
+            precio_objetivo = info.get('targetMeanPrice') or precio_actual
+            
+            # Calculamos el porcentaje de ganancia estimado por los expertos (Upside)
+            potencial = ((precio_objetivo - precio_actual) / precio_actual) * 100
+            
+            # Puntuación de recomendación (1.0 = Compra fuerte, 5.0 = Venta fuerte)
+            rating = info.get('recommendationRating', 3.0) or 3.0
+            texto_rating = info.get('recommendationKey', 'Hold').upper().replace('_', ' ')
+            
+            nombre = info.get('shortName') or info.get('longName') or ticker
+            
+            lista_recomendados.append({
+                "Ticker": ticker,
+                "Empresa": nombre,
+                "Precio Act.": f"${precio_actual:,.2f}",
+                "Obj. Expertos": f"${precio_objetivo:,.2f}",
+                "Potencial": potencial,
+                "Consenso": texto_rating,
+                "RatingNum": rating
+            })
+        except Exception:
+            continue
+            
+    df = pd.DataFrame(lista_recomendados)
+    if not df.empty:
+        # Ordenamos primero por mejor recomendación (Rating numérico más bajo) y luego por mayor potencial de subida
+        df = df.sort_values(by=["RatingNum", "Potencial"], ascending=[True, False])
+        return df.head(10)
+    return pd.DataFrame()
+
 # =========================================================================
 # 🎛️ ESTRUCTURA APP: BARRA LATERAL
 # =========================================================================
@@ -126,138 +200,4 @@ with st.sidebar:
             ejecutar_analisis = st.button("⚡ Ejecutar Terminal")
         else:
             st.error("No se encontraron activos.")
-            ejecutar_analisis = False
-    else:
-        ejecutar_analisis = False
-
-    st.markdown("<br><br><br><br>", unsafe_allow_html=True)
-    
-    st.markdown("""
-        <div class='user-profile'>
-            <div style='display: flex; align-items: center; gap: 12px;'>
-                <div style='width: 38px; height: 38px; background-color: #8b949e; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #161b22; font-weight: bold; font-size: 1rem;'>VIP</div>
-                <div>
-                    <div style='color: white; font-weight: bold; font-size: 0.9rem;'>Inversor Premium</div>
-                    <div style='color: #58a6ff; font-size: 0.75rem; font-weight: 600;'>Licencia Activa ✅</div>
-                </div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
-# =========================================================================
-# 💻 PANEL CENTRAL
-# =========================================================================
-if ejecutar_analisis and ticker_elegido:
-    with st.spinner("Sincronizando flujos de datos..."):
-        try:
-            empresa = yf.Ticker(ticker_elegido)
-            info = empresa.info
-            nombre_real = info.get('longName') or ticker_elegido
-            
-            st.markdown(f"<h1 style='margin-bottom: 0;'>📈 Monitor Operativo: {nombre_real}</h1>", unsafe_allow_html=True)
-            st.markdown(f"<p style='color: #8b949e; margin-top: 0;'>Código oficial de mercado: <b>{ticker_elegido}</b></p>", unsafe_allow_html=True)
-            st.markdown("---")
-            
-            # --- BLOQUE 1: TARJETAS DE INDICADORES ---
-            precio_actual = info.get('currentPrice') or info.get('navPrice') or info.get('previousClose') or 0
-            pe_ratio = info.get('trailingPE', float('inf')) or float('inf')
-            debt_to_equity = info.get('debtToEquity', 0) or 0
-            margin_neto = (info.get('profitMargins', 0) or 0) * 100
-            
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("VALOR EN TIEMPO REAL", f"${precio_actual:,.2f}")
-            c2.metric("MÚLTIPLO P/E", f"{pe_ratio:.2f}" if pe_ratio != float('inf') else "N/A")
-            c3.metric("MARGEN DE UTILIDAD", f"{margin_neto:.2f}%")
-            c4.metric("RATIO APALANCAMIENTO", f"{debt_to_equity:.1f}%")
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            # --- BLOQUE 2: GRÁFICA DE VELAS CONTINUA Y ULTRA LIMPIA ---
-            historial = empresa.history(period="5d", interval="15m")
-            
-            if not historial.empty:
-                st.markdown("### 📡 Velas de Alta Frecuencia (Intervalo: 15 Minutos)")
-                
-                # Formateamos las fechas para los pop-ups flotantes
-                fechas_limpias = historial.index.strftime('%b %d, %H:%M')
-                
-                fig = go.Figure(data=[go.Candlestick(
-                    x=fechas_limpias,
-                    open=historial['Open'],
-                    high=historial['High'],
-                    low=historial['Low'],
-                    close=historial['Close'],
-                    increasing_line_color='#2ecc71',  
-                    increasing_fillcolor='#2ecc71',   
-                    decreasing_line_color='#e74c3c',  
-                    decreasing_fillcolor='#e74c3c',   
-                    name=ticker_elegido
-                )])
-                
-                # Filtro para que el eje de fechas no se sature de texto
-                valores_eje_x = fechas_limpias[::20]
-                
-                fig.update_layout(
-                    paper_bgcolor='#0b0e14',      
-                    plot_bgcolor='#161b22',       
-                    font_color='#c9d1d9',          
-                    margin=dict(l=20, r=20, t=10, b=10),
-                    xaxis_rangeslider_visible=False, 
-                    xaxis=dict(
-                        gridcolor='#21262d',       
-                        linecolor='#30363d',
-                        tickvals=valores_eje_x,    
-                        tickangle=0,               
-                        tickfont=dict(size=11, color='#8b949e')
-                    ),
-                    yaxis=dict(
-                        gridcolor='#21262d',
-                        linecolor='#30363d',
-                        side='right'               
-                    )
-                )
-                
-                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-            
-            st.markdown("---")
-            
-            # --- BLOQUE 3: AUDITORÍA ---
-            st.markdown("### 📋 Evaluación de Riesgos Financieros")
-            puntuacion = 0
-            razones = []
-            
-            if pe_ratio != float('inf') and pe_ratio < 20:
-                puntuacion += 1
-                razones.append("🟢 **Precio Atractivo:** Cotización equilibrada respecto a sus ganancias corporativas actuales (P/E < 20).")
-            else:
-                razones.append("🟡 **Multiplo Exigente:** El mercado está pagando un premium alto por esta acción (P/E > 20).")
-                
-            if margin_neto > 15:
-                puntuacion += 1
-                razones.append("🟢 **Ventaja Competitiva:** Margen de ganancia neto excelente superior al 15%. Gran retención de caja.")
-            else:
-                razones.append("🟡 **Rendimiento Ajustado:** Márgenes de beneficio limitados debido a costes operativos elevados (Menor al 15%).")
-                
-            if debt_to_equity < 100:
-                puntuacion += 1
-                razones.append("🟢 **Estructura Balance Lineal:** La deuda se mantiene controlada y por debajo de su patrimonio neto.")
-            else:
-                razones.append("🔴 **Carga de Deuda Pasiva:** El pasivo financiero supera los recursos propios. Incremento de riesgo crediticio.")
-            
-            for razon in razones:
-                st.markdown(razon)
-                
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            if puntuacion == 3:
-                st.success("### 💥 CONCLUSIÓN DEL SISTEMA: ALTA CONVICCIÓN DE COMPRA")
-            elif puntuacion == 2:
-                st.warning("### ⚖️ CONCLUSIÓN DEL SISTEMA: CONDICIÓN DE MANTENER / ESPERAR")
-            else:
-                st.error("### ❌ CONCLUSIÓN DEL SISTEMA: ALTA SEÑAL DE RIESGO / EVITAR")
-                
-        except Exception as e:
-            st.error(f"Error técnico de enlace de datos: {e}")
-else:
-    st.markdown("<h1 style='text-align: center; margin-top: 10%; color: #58a6ff;'>🎛️ Terminal Abierta y Lista</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #8b949e;'>Usa la barra de herramientas de la izquierda para buscar un activo financiero e iniciar el análisis algorítmico en tiempo real.</p>", unsafe_allow_html=True)
+            ejecutar_anal
