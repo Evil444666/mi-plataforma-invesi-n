@@ -4,7 +4,9 @@ import pandas as pd
 import plotly.graph_objects as go
 import datetime
 
+# =========================================================================
 # 1. CONFIGURACIÓN DE LA APP (Modo Ancho y Tema Oscuro de Alta Gama)
+# =========================================================================
 st.set_page_config(page_title="QuantumTerminal Pro", page_icon="📈", layout="wide")
 
 # CSS Avanzado para estética SaaS Premium de Trading
@@ -90,7 +92,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Base de datos local premium por si falla la conexión con Yahoo (Evita pantallas en blanco)
+# Base de datos local premium por si falla la conexión con Yahoo o excede límites (Anti-Bloqueos)
 BASE_DATOS_PREMIUM = {
     "TSLA": {"nombre": "Tesla, Inc.", "precio": 178.46, "pe": 45.2, "margen": 14.5, "deuda": 12.4},
     "AAPL": {"nombre": "Apple Inc.", "precio": 214.30, "pe": 29.1, "margen": 25.8, "deuda": 140.2},
@@ -104,7 +106,7 @@ BASE_DATOS_PREMIUM = {
     "AVGO": {"nombre": "Broadcom Inc.", "precio": 168.20, "pe": 32.8, "margen": 22.3, "deuda": 165.4}
 }
 
-# LÓGICA DE BÚSQUEDA BLINDADA CONTRA BLOQUEOS DE YAHOO
+# LÓGICA DE BÚSQUEDA PROTEGIDA CONTRA CUALQUIER ERROR
 def buscar_y_ordenar_empresas(palabra_clave):
     palabra_clave = palabra_clave.strip().upper()
     if not palabra_clave:
@@ -119,21 +121,19 @@ def buscar_y_ordenar_empresas(palabra_clave):
     if palabra_clave in mapeo_comun:
         palabra_clave = mapeo_comun[palabra_clave]
 
-    # Si está en nuestro catálogo premium local, lo devolvemos de inmediato para evitar esperas
+    # Control local prioritario para evitar activar el bloqueo de Yahoo
     if palabra_clave in BASE_DATOS_PREMIUM:
         return [{'ticker': palabra_clave, 'nombre': BASE_DATOS_PREMIUM[palabra_clave]['nombre']}]
 
-    # Intentar búsqueda externa por Ticker directo
     try:
         t_directo = yf.Ticker(palabra_clave)
         info_directa = t_directo.info
         if info_directa and ('marketCap' in info_directa or 'currentPrice' in info_directa):
             nombre = info_directa.get('longName') or info_directa.get('shortName') or palabra_clave
             return [{'ticker': palabra_clave, 'nombre': nombre}]
-    except Exception:
+    except:
         pass
 
-    # Intentar búsqueda general alternativa
     try:
         busqueda = yf.Search(palabra_clave, max_results=3)
         resultados = busqueda.quotes
@@ -147,13 +147,13 @@ def buscar_y_ordenar_empresas(palabra_clave):
                 lista_empresas.append({'ticker': ticker_simbolo, 'nombre': nombre_oficial})
             if lista_empresas:
                 return lista_empresas
-    except Exception:
+    except:
         pass
 
     return [{'ticker': palabra_clave, 'nombre': f"Terminal Extendida: {palabra_clave}"}]
 
 # =========================================================================
-# 🎛️ ESTRUCTURA APP: BARRA LATERAL (Fija y constante)
+# 2. INTERFAZ: BARRA LATERAL (Sidebar Constante)
 # =========================================================================
 with st.sidebar:
     st.markdown("""
@@ -188,7 +188,7 @@ with st.sidebar:
 
     st.markdown("<br><br>", unsafe_allow_html=True)
     
-    # Tarjeta VIP de Branding del Software
+    # Tarjeta Perfil VIP de Suscripción
     st.markdown("""
         <div class='user-profile'>
             <div style='display: flex; align-items: center; gap: 12px;'>
@@ -202,16 +202,17 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
 # =========================================================================
-# 💻 LÓGICA DE LA PÁGINA CENTRAL (Panel Dinámico)
+# 3. INTERFAZ: PANEL CENTRAL DINÁMICO
 # =========================================================================
 if ejecutar_analisis and ticker_elegido:
-    # --- MODO 1: DETALLE DEL ACTIVO SELECCIONADO ---
+    # ---------------------------------------------------------------------
+    # VISTA A: DETALLE DEL ACTIVO CONSULTADO
+    # ---------------------------------------------------------------------
     with st.spinner("Sincronizando flujos de datos y algoritmos..."):
         precio_actual, pe_ratio, margin_neto, debt_to_equity = 0.0, 0.0, 0.0, 0.0
         nombre_real = ticker_elegido
         usando_respaldo = False
 
-        # Intentar extraer los datos desde la API de Yahoo
         try:
             empresa = yf.Ticker(ticker_elegido)
             info = empresa.info
@@ -223,10 +224,10 @@ if ejecutar_analisis and ticker_elegido:
                 margin_neto = (info.get('profitMargins', 0) or 0) * 100
             else:
                 usando_respaldo = True
-        except Exception:
+        except:
             usando_respaldo = True
 
-        # Forzar respaldo si los datos fallaron o están vacíos (Evita bloqueos frente al cliente)
+        # Aplicación de Respaldo Híbrido en caso de Rate Limiting
         if usando_respaldo or precio_actual == 0:
             if ticker_elegido in BASE_DATOS_PREMIUM:
                 ref = BASE_DATOS_PREMIUM[ticker_elegido]
@@ -242,12 +243,11 @@ if ejecutar_analisis and ticker_elegido:
                 margin_neto = 18.5
                 debt_to_equity = 45.0
 
-        # Renderizado de Interfaz Profesional de la Terminal
         st.markdown(f"<h1 style='margin-bottom: 0;'>📈 Monitor Operativo: {nombre_real}</h1>", unsafe_allow_html=True)
         st.markdown(f"<p style='color: #8b949e; margin-top: 0;'>Código oficial de mercado: <b>{ticker_elegido}</b></p>", unsafe_allow_html=True)
         st.markdown("---")
         
-        # --- Bloque de Tarjetas de Indicadores Métricos ---
+        # Tarjetas de Indicadores Métricos
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("VALOR EN TIEMPO REAL", f"${precio_actual:,.2f}")
         c2.metric("MÚLTIPLO P/E", f"{pe_ratio:.2f}" if pe_ratio != float('inf') else "N/A")
@@ -256,7 +256,7 @@ if ejecutar_analisis and ticker_elegido:
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # --- Gráfica de Velas Financieras Protegida ---
+        # Renderizado del Gráfico de Velas Protegido
         grafico_exitoso = False
         if not usando_respaldo:
             try:
@@ -273,10 +273,9 @@ if ejecutar_analisis and ticker_elegido:
                         name=ticker_elegido
                     )])
                     grafico_exitoso = True
-            except Exception:
+            except:
                 grafico_exitoso = False
 
-        # Si la API falla al traer las velas, creamos una simulación matemática perfecta
         if not grafico_exitoso:
             st.markdown("### 📡 Análisis Cuantitativo Algorítmico Proyectado")
             fechas_simuladas = [(datetime.datetime.now() - datetime.timedelta(minutes=15*i)).strftime('%b %d, %H:%M') for i in range(20)]
@@ -292,7 +291,6 @@ if ejecutar_analisis and ticker_elegido:
                 increasing=dict(line=dict(color='#2ecc71')), decreasing=dict(line=dict(color='#e74c3c'))
             )])
 
-        # Ajustes de estilo visual oscuro para la gráfica
         fig.update_layout(
             paper_bgcolor='#0b0e14', plot_bgcolor='#161b22', font_color='#c9d1d9',          
             margin=dict(l=20, r=20, t=10, b=10), xaxis_rangeslider_visible=False, 
@@ -303,7 +301,7 @@ if ejecutar_analisis and ticker_elegido:
         
         st.markdown("---")
         
-        # --- Sistema Automático de Evaluación Corporativa ---
+        # Auditoría Automatizada de Riesgos
         st.markdown("### 📋 Evaluación de Riesgos Financieros")
         puntuacion = 0
         razones = []
@@ -318,65 +316,4 @@ if ejecutar_analisis and ticker_elegido:
             puntuacion += 1
             razones.append("🟢 **Ventaja Competitiva:** Margen de ganancia neto excelente superior al 15%. Gran retención de caja.")
         else:
-            razones.append("🟡 **Rendimiento Ajustado:** Márgenes de beneficio limitados debido a costes operativos elevados (Menor al 15%).")
-            
-        if debt_to_equity < 100:
-            puntuacion += 1
-            razones.append("🟢 **Estructura Balance Lineal:** La deuda se mantiene controlada y por debajo de su patrimonio neto.")
-        else:
-            razones.append("🔴 **Carga de Deuda Pasiva:** El pasivo financiero supera los recursos propios. Incremento de riesgo crediticio.")
-        
-        for razon in razones:
-            st.markdown(razon)
-            
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        if puntuacion >= 3:
-            st.success("### 💥 CONCLUSIÓN DEL SISTEMA: ALTA CONVICCIÓN DE COMPRA")
-        elif puntuacion == 2:
-            st.warning("### ⚖️ CONCLUSIÓN DEL SISTEMA: CONDICIÓN DE MANTENER / ESPERAR")
-        else:
-            st.error("### ❌ CONCLUSIÓN DEL SISTEMA: ALTA SEÑAL DE RIESGO / EVITAR")
-
-else:
-    # --- MODO 2: PÁGINA DE BIENVENIDA PREMIUM (LO QUE VALE DINERO) ---
-    st.markdown("<h1 style='text-align: center; margin-top: 2%; color: #ffffff;'>🎛️ Terminal QuantSaaS Abierta</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #8b949e; font-size:1.1rem;'>Sistemas Algorítmicos y Monitoreo Institucional de Alta Convicción en Wall Street.</p>", unsafe_allow_html=True)
-    st.markdown("---")
-    
-    # KPIs Globales de mercado estáticos
-    st.markdown("### 📊 Indicadores de Contexto Macroeconómico Global")
-    k1, k2, k3, k4 = st.columns(4)
-    k1.metric("S&P 500 INDEX", "5,304.72", "+0.45% (Semanal)")
-    k2.metric("NASDAQ 100", "18,622.10", "+1.12% (Semanal)")
-    k3.metric("VIX (VOLATILIDAD)", "12.45", "-3.20% (Calma)")
-    k4.metric("REND. BONO USA 10A", "4.41%", "+0.02% (Estable)")
-    
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("### 🔥 Top 10 Activos más Recomendados por Expertos de Wall Street")
-    st.markdown("<p style='color: #8b949e; font-size: 0.95rem; margin-top:-10px;'>Basado en el consenso de analistas institucionales de firmas líderes y proyecciones matemáticas de precio objetivo a 12 meses.</p>", unsafe_allow_html=True)
-    
-    datos_estaticos = [
-        {"ticker": "NVDA", "empresa": "NVIDIA Corporation", "precio": "$127.40", "objetivo": "$147.20", "potencial": "+15.54%", "consenso": "STRONG BUY"},
-        {"ticker": "AMZN", "empresa": "Amazon.com, Inc.", "precio": "$184.10", "objetivo": "$211.50", "potencial": "+14.88%", "consenso": "STRONG BUY"},
-        {"ticker": "MSFT", "empresa": "Microsoft Corporation", "precio": "$415.20", "objetivo": "$472.00", "potencial": "+13.68%", "consenso": "BUY"},
-        {"ticker": "AAPL", "empresa": "Apple Inc.", "precio": "$214.30", "objetivo": "$241.10", "potencial": "+12.51%", "consenso": "BUY"},
-        {"ticker": "GOOGL", "empresa": "Alphabet Inc.", "precio": "$173.50", "objetivo": "$194.80", "potencial": "+12.28%", "consenso": "BUY"},
-        {"ticker": "META", "empresa": "Meta Platforms, Inc.", "precio": "$498.90", "objetivo": "$555.00", "potencial": "+11.24%", "consenso": "BUY"},
-        {"ticker": "AVGO", "empresa": "Broadcom Inc.", "precio": "$168.20", "objetivo": "$185.30", "potencial": "+10.17%", "consenso": "BUY"},
-        {"ticker": "NFLX", "empresa": "Netflix, Inc.", "precio": "$660.50", "objetivo": "$718.00", "potencial": "+8.71%", "consenso": "BUY"},
-        {"ticker": "COST", "empresa": "Costco Wholesale Corp.", "precio": "$832.10", "objetivo": "$891.00", "potencial": "+7.08%", "consenso": "BUY"},
-        {"ticker": "AMD", "empresa": "Advanced Micro Devices", "precio": "$154.60", "objetivo": "$165.00", "potencial": "+6.73%", "consenso": "HOLD"}
-    ]
-    
-    html_tabla = "<table class='styled-table'><thead><tr><th>TICKER</th><th>EMPRESA</th><th>PRECIO ACT.</th><th>OBJ. MEDIO</th><th>POTENCIAL</th><th>CONSENSO EXPERTO</th></tr></thead><tbody>"
-    
-    for row in datos_estaticos:
-        color_potencial = "#2ecc71" if "+" in row['potencial'] else "#e74c3c"
-        bg_badge = "rgba(46, 204, 113, 0.15)" if "BUY" in row['consenso'] else "rgba(241, 196, 15, 0.15)"
-        color_badge = "#2ecc71" if "BUY" in row['consenso'] else "#f1c40f"
-        
-        html_tabla += f"<tr><td style='font-weight: bold; color: #ffffff;'>{row['ticker']}</td><td>{row['empresa']}</td><td>{row['precio']}</td><td style='color: #8b949e;'>{row['objetivo']}</td><td style='color: {color_potencial}; font-weight: bold;'>{row['potencial']}</td><td><span style='background-color: {bg_badge}; color: {color_badge}; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold;'>{row['consenso']}</span></td></tr>"
-        
-    html_tabla += "</tbody></table>"
-    st.markdown(html_tabla, unsafe_allow_html=True)
+            razones.append("🟡 **Rendimiento Ajustado:** Márgenes de beneficio limitados debido a
