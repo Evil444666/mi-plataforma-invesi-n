@@ -172,46 +172,43 @@ if ejecutar_analisis and ticker_elegido:
             
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # --- BLOQUE 2: REVOLUCIONARIO GRÁFICO DE VELAS 15 MINUTOS (Mimetizado) ---
-            # Pedimos los últimos 5 días de datos con velas de 15 minutos exactos
+            # --- BLOQUE 2: GRÁFICA CORREGIDA DE VELAS 15 MINUTOS ---
             historial = empresa.history(period="5d", interval="15m")
             
             if not historial.empty:
                 st.markdown("### 📡 Velas de Alta Frecuencia (Intervalo: 15 Minutos)")
                 
-                # Creamos el objeto gráfico Candlestick imitando el estilo de image_0e67dd.png
+                # Corrección de los nombres de los parámetros de color internos de Plotly
                 fig = go.Figure(data=[go.Candlestick(
                     x=historial.index,
                     open=historial['Open'],
                     high=historial['High'],
                     low=historial['Low'],
                     close=historial['Close'],
-                    increasing_line_color='#2ecc71',  # Verde brillante para subidas
-                    increasing_fill_color='#2ecc71',
-                    decreasing_line_color='#e74c3c',  # Rojo intenso para bajadas
-                    decreasing_fill_color='#e74c3c',
+                    increasing_line_color='#2ecc71',  
+                    increasing_fillcolor='#2ecc71',   # Sin guion bajo interno
+                    decreasing_line_color='#e74c3c',  
+                    decreasing_fillcolor='#e74c3c',   # Sin guion bajo interno
                     name=ticker_elegido
                 )])
                 
-                # MIMETIZACIÓN COMPLETA CON EL FONDO OSCURO DE LA APP
                 fig.update_layout(
-                    paper_bgcolor='#0b0e14',      # Mismo color exacto de tu fondo de app
-                    plot_bgcolor='#161b22',       # Fondo del recuadro interior de la gráfica
-                    font_color='#c9d1d9',          # Color de los textos de los ejes
+                    paper_bgcolor='#0b0e14',      
+                    plot_bgcolor='#161b22',       
+                    font_color='#c9d1d9',          
                     margin=dict(l=20, r=20, t=10, b=10),
-                    xaxis_rangeslider_visible=False, # Quitamos la barra molesta de abajo para limpiar el diseño
+                    xaxis_rangeslider_visible=False, 
                     xaxis=dict(
-                        gridcolor='#21262d',       # Líneas de cuadrícula súper sutiles
+                        gridcolor='#21262d',       
                         linecolor='#30363d'
                     ),
                     yaxis=dict(
                         gridcolor='#21262d',
                         linecolor='#30363d',
-                        side='right'               # El precio sale a la derecha, igual que en TradingView
+                        side='right'               
                     )
                 )
                 
-                # Pintamos el gráfico de Plotly integrado al 100%
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
             
             st.markdown("---")
