@@ -199,7 +199,7 @@ if entrada:
                     for razon in razones:
                         st.markdown(razon)
                         
-                    st.markdown("<br>", unsafe_css_allow_html=True)
+                    st.markdown("<br>", unsafe_allow_html=True)
                     
                     # --- RECOMENDACIÓN FINAL CON DISEÑO EXCLUSIVO ---
                     if puntuacion == 3:
