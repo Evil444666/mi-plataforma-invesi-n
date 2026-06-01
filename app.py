@@ -1,6 +1,7 @@
 import streamlit as st
 import yfinance as yf
 import pandas as pd
+import plotly.graph_objects as go
 
 # 1. CONFIGURACIÓN DE LA APP (Modo Ancho y Tema Oscuro)
 st.set_page_config(page_title="QuantumTerminal Pro", page_icon="📈", layout="wide")
@@ -94,10 +95,9 @@ def buscar_y_ordenar_empresas(palabra_clave):
         return []
 
 # =========================================================================
-# 🎛️ ESTRUCTURA APP: BARRA LATERAL (MENÚ DE NAVEGACIÓN Y CONFIGURACIÓN)
+# 🎛️ ESTRUCTURA APP: BARRA LATERAL
 # =========================================================================
 with st.sidebar:
-    # LOGO DE LA PÁGINA (Estilo Corporativo Tech)
     st.markdown("""
         <div style='display: flex; align-items: center; gap: 10px; margin-bottom: 25px;'>
             <div style='background-color: #1f6feb; padding: 8px 12px; border-radius: 8px; color: white; font-weight: bold; font-size: 1.2rem;'>Q</div>
@@ -108,7 +108,6 @@ with st.sidebar:
     st.markdown("### 🔍 Panel de Control")
     entrada = st.text_input("Buscar Activo:", placeholder="Ej: Apple, Tesla, NVDA...")
     
-    # Menú dinámico si se busca algo
     ticker_elegido = None
     if entrada:
         with st.spinner("Escaneando Wall Street..."):
@@ -117,7 +116,6 @@ with st.sidebar:
         if empresas_encontradas:
             opciones = []
             for emp in empresas_encontradas:
-                cap_billones = emp['market_cap'] / 1_000_000_000 if emp['market_cap'] else 0
                 opciones.append(f"{emp['ticker']} | {emp['nombre']}")
                 
             seleccion = st.selectbox("Seleccionar empresa:", opciones)
@@ -132,10 +130,8 @@ with st.sidebar:
     else:
         ejecutar_analisis = False
 
-    # Espaciador para mandar el perfil al fondo de la barra
     st.markdown("<br><br><br><br>", unsafe_allow_html=True)
     
-    # LÓGICA DEL LOGO DE CLIENTE VIP (Sección de Cuenta del Usuario)
     st.markdown("""
         <div class='user-profile'>
             <div style='display: flex; align-items: center; gap: 12px;'>
@@ -149,7 +145,7 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
 # =========================================================================
-# 💻 PANEL CENTRAL: MONITOR DE DATOS OPERATIVOS
+# 💻 PANEL CENTRAL
 # =========================================================================
 if ejecutar_analisis and ticker_elegido:
     with st.spinner("Sincronizando flujos de datos..."):
@@ -158,7 +154,6 @@ if ejecutar_analisis and ticker_elegido:
             info = empresa.info
             nombre_real = info.get('longName') or ticker_elegido
             
-            # Encabezado dinámico de la empresa analizada
             st.markdown(f"<h1 style='margin-bottom: 0;'>📈 Monitor Operativo: {nombre_real}</h1>", unsafe_allow_html=True)
             st.markdown(f"<p style='color: #8b949e; margin-top: 0;'>Código oficial de mercado: <b>{ticker_elegido}</b></p>", unsafe_allow_html=True)
             st.markdown("---")
@@ -177,24 +172,51 @@ if ejecutar_analisis and ticker_elegido:
             
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # --- BLOQUE 2: GRÁFICA VECTORIAL DE ALTO IMPACTO ---
-            historial = empresa.history(period="15d")
+            # --- BLOQUE 2: REVOLUCIONARIO GRÁFICO DE VELAS 15 MINUTOS (Mimetizado) ---
+            # Pedimos los últimos 5 días de datos con velas de 15 minutos exactos
+            historial = empresa.history(period="5d", interval="15m")
+            
             if not historial.empty:
-                st.markdown("### 📡 Flujo de Tendencia (15 Períodos)")
-                historial['Diferencia'] = historial['Close'].diff()
-                historial.iloc[0, historial.columns.get_loc('Diferencia')] = 0
-                historial['Color'] = historial['Diferencia'].apply(lambda x: '#00cc66' if x >= 0 else '#ff3333')
+                st.markdown("### 📡 Velas de Alta Frecuencia (Intervalo: 15 Minutos)")
                 
-                datos_grafica = pd.DataFrame({
-                    'Fecha': historial.index.strftime('%Y-%m-%d'),
-                    'Precio ($)': historial['Close'].round(2),
-                    'color': historial['Color']
-                })
-                st.bar_chart(datos_grafica, x='Fecha', y='Precio ($)', color='color', use_container_width=True)
+                # Creamos el objeto gráfico Candlestick imitando el estilo de image_0e67dd.png
+                fig = go.Figure(data=[go.Candlestick(
+                    x=historial.index,
+                    open=historial['Open'],
+                    high=historial['High'],
+                    low=historial['Low'],
+                    close=historial['Close'],
+                    increasing_line_color='#2ecc71',  # Verde brillante para subidas
+                    increasing_fill_color='#2ecc71',
+                    decreasing_line_color='#e74c3c',  # Rojo intenso para bajadas
+                    decreasing_fill_color='#e74c3c',
+                    name=ticker_elegido
+                )])
+                
+                # MIMETIZACIÓN COMPLETA CON EL FONDO OSCURO DE LA APP
+                fig.update_layout(
+                    paper_bgcolor='#0b0e14',      # Mismo color exacto de tu fondo de app
+                    plot_bgcolor='#161b22',       # Fondo del recuadro interior de la gráfica
+                    font_color='#c9d1d9',          # Color de los textos de los ejes
+                    margin=dict(l=20, r=20, t=10, b=10),
+                    xaxis_rangeslider_visible=False, # Quitamos la barra molesta de abajo para limpiar el diseño
+                    xaxis=dict(
+                        gridcolor='#21262d',       # Líneas de cuadrícula súper sutiles
+                        linecolor='#30363d'
+                    ),
+                    yaxis=dict(
+                        gridcolor='#21262d',
+                        linecolor='#30363d',
+                        side='right'               # El precio sale a la derecha, igual que en TradingView
+                    )
+                )
+                
+                # Pintamos el gráfico de Plotly integrado al 100%
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
             
             st.markdown("---")
             
-            # --- BLOQUE 3: AUDITORÍA INTELECTUAL ---
+            # --- BLOQUE 3: AUDITORÍA ---
             st.markdown("### 📋 Evaluación de Riesgos Financieros")
             puntuacion = 0
             razones = []
@@ -222,7 +244,6 @@ if ejecutar_analisis and ticker_elegido:
                 
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # SEÑAL FINAL EN CAJA ESTILIZADA
             if puntuacion == 3:
                 st.success("### 💥 CONCLUSIÓN DEL SISTEMA: ALTA CONVICCIÓN DE COMPRA")
             elif puntuacion == 2:
@@ -233,6 +254,5 @@ if ejecutar_analisis and ticker_elegido:
         except Exception as e:
             st.error(f"Error técnico de enlace de datos: {e}")
 else:
-    # Pantalla de bienvenida limpia cuando la app se abre por primera vez
     st.markdown("<h1 style='text-align: center; margin-top: 10%; color: #58a6ff;'>🎛️ Terminal Abierta y Lista</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #8b949e;'>Usa la barra de herramientas de la izquierda para buscar un activo financiero e iniciar el análisis algorítmico en tiempo real.</p>", unsafe_allow_html=True)
