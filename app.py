@@ -53,11 +53,11 @@ st.markdown("""
         border-top: 1px solid #21262d !important;
     }
     </style>
-""", unsafe_css_allow_html=True)
+""", unsafe_allow_html=True)
 
 # ENCABEZADO DE LA PLATAFORMA
 st.markdown("# ⚡ TERMINAL QUANT PRO")
-st.markdown("<p style='color: #8b949e; font-size: 1.1rem;'>Plataforma Inteligente de Análisis de Activos en Tiempo Real conectado con Wall Street.</p>", unsafe_css_allow_html=True)
+st.markdown("<p style='color: #8b949e; font-size: 1.1rem;'>Plataforma Inteligente de Análisis de Activos en Tiempo Real conectado con Wall Street.</p>", unsafe_allow_html=True)
 st.markdown("---")
 
 def buscar_y_ordenar_empresas(palabra_clave):
@@ -80,7 +80,7 @@ def buscar_y_ordenar_empresas(palabra_clave):
         lista_empresas = []
         for r in resultados:
             ticker_simbolo = r.get('symbol')
-            if not ticker_simbolo or "." in ticker_simbolo: # Filtramos mercados raros fuera de EE.UU.
+            if not ticker_simbolo or "." in ticker_simbolo: 
                 continue
             nombre_oficial = r.get('longname') or r.get('shortname') or r.get('name') or "Desconocido"
             try:
@@ -119,7 +119,7 @@ if entrada:
         indice_seleccionado = opciones.index(seleccion)
         ticker_elegido = empresas_encontradas[indice_seleccionado]['ticker']
         
-        st.markdown("<br>", unsafe_css_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
         if st.button("🚀 INICIAR ESCANEO CUANTITATIVO"):
             st.markdown("---")
             
@@ -127,7 +127,7 @@ if entrada:
                 try:
                     empresa = yf.Ticker(ticker_elegido)
                     
-                    # --- DISEÑO PANEL DE INFORMACIÓN: MÉTRICAS CLAVE EN TARJETAS ---
+                    # --- DISEÑO PANEL DE INFORMACIÓN ---
                     info = empresa.info
                     precio_actual = info.get('currentPrice') or info.get('navPrice') or info.get('previousClose') or 0
                     pe_ratio = info.get('trailingPE', float('inf')) or float('inf')
@@ -136,23 +136,21 @@ if entrada:
                     
                     st.subheader(f"📊 Dashboard Operativo: {ticker_elegido}")
                     
-                    # Tarjetas con estilo Dashboard profesional
                     m1, m2, m3, m4 = st.columns(4)
                     m1.metric("💰 PRECIO ACTUAL", f"${precio_actual:,.2f}")
                     m2.metric("📈 RATIO P/E", f"{pe_ratio:.2f}" if pe_ratio != float('inf') else "N/A")
                     m3.metric("💎 MARGEN NETO", f"{margin_neto:.2f}%")
                     m4.metric("⚖️ DEUDA / CAPITAL", f"{debt_to_equity:.1f}%")
                     
-                    st.markdown("<br>", unsafe_css_allow_html=True)
+                    st.markdown("<br>", unsafe_allow_html=True)
                     
-                    # --- DISEÑO CENTRAL: GRÁFICA INTERACTIVA EN COLOR DE ALTA FIDELIDAD ---
+                    # --- DISEÑO CENTRAL: GRÁFICA ---
                     historial = empresa.history(period="15d")
                     if not historial.empty:
                         st.markdown("### 📡 Tendencia de Mercado (Últimos 15 Días)")
                         
                         historial['Diferencia'] = historial['Close'].diff()
                         historial.iloc[0, historial.columns.get_loc('Diferencia')] = 0
-                        # Verdes y rojos brillantes de trading
                         historial['Color'] = historial['Diferencia'].apply(lambda x: '#00cc66' if x >= 0 else '#ff3333')
                         
                         datos_grafica = pd.DataFrame({
@@ -171,7 +169,7 @@ if entrada:
                     
                     st.markdown("---")
                     
-                    # --- ANÁLISIS DE BALANCES CONTABLES ---
+                    # --- ANÁLISIS DE BALANCES ---
                     st.markdown("### 📋 Resultados de la Auditoría Computarizada")
                     
                     puntuacion = 0
@@ -195,13 +193,11 @@ if entrada:
                     else:
                         razones.append("🔴 **Riesgo de Apalancamiento:** La deuda supera los fondos propios. Alerta de carga financiera.")
                     
-                    # Mostrar las razones de manera limpia
                     for razon in razones:
                         st.markdown(razon)
                         
                     st.markdown("<br>", unsafe_allow_html=True)
                     
-                    # --- RECOMENDACIÓN FINAL CON DISEÑO EXCLUSIVO ---
                     if puntuacion == 3:
                         st.success("### 💥 SEÑAL ALGORÍTMICA: COMPRA FUERTE (Oportunidad de Alta Convicción)")
                     elif puntuacion == 2:
