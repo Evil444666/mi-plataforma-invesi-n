@@ -219,4 +219,4 @@ with st.sidebar:
 if ejecutar_analisis and ticker_elegido:
     with st.spinner("Sincronizando flujos de datos..."):
         try:
-            empresa = yf.Ticker(ticker_elegido
+            empresa = yf.Ticker(ticker_elegido)
