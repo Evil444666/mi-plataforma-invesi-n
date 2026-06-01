@@ -81,6 +81,7 @@ st.markdown("""
     .styled-table td {
         padding: 12px 15px;
         border-bottom: 1px solid #21262d;
+        color: #c9d1d9;
     }
     .styled-table tr:last-of-type td {
         border-bottom: none;
@@ -122,7 +123,6 @@ def buscar_y_ordenar_empresas(palabra_clave):
 
 @st.cache_data(ttl=3600)
 def obtener_top_10_expertos():
-    # Ampliamos la lista para asegurar que siempre recolecte mínimo 10 válidas sin saltos
     tickers_control = [
         "AAPL", "MSFT", "NVDA", "AMZN", "META", "GOOGL", "TSLA", "LLY", "V", "TSM",
         "AVGO", "NVO", "JPM", "WMT", "UNH", "ASML", "ORCL", "NFLX", "COST", "AMD",
@@ -159,7 +159,6 @@ def obtener_top_10_expertos():
             
     df = pd.DataFrame(lista_recom)
     if not df.empty:
-        # Ordenamos por consenso de expertos y potencial de beneficio mas alto
         df = df.sort_values(by=["RatingNum", "Potencial"], ascending=[True, False])
         return df.head(10)
     return pd.DataFrame()
@@ -323,7 +322,7 @@ if ejecutar_analisis and ticker_elegido:
         except Exception as e:
             st.error(f"Error técnico de enlace de datos: {e}")
 else:
-    # PÁGINA DE BIENVENIDA (Dashboard Inicial con el TOP 10 completo)
+    # PÁGINA DE BIENVENIDA (Dashboard Inicial con el TOP 10 corregido)
     st.markdown("<h1 style='text-align: center; margin-top: 3%; color: #ffffff;'>🎛️ Terminal Abierta y Lista</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #8b949e;'>Usa el buscador de la barra lateral izquierda para analizar un activo en tiempo real.</p>", unsafe_allow_html=True)
     st.markdown("---")
@@ -344,7 +343,7 @@ else:
             html_tabla += f"""
             <tr>
                 <td style='font-weight: bold; color: #ffffff;'>{row['Ticker']}</td>
-                <td style='color: #c9d1d9;'>{row['Empresa']}</td>
+                <td>{row['Empresa']}</td>
                 <td>{row['Precio Act.']}</td>
                 <td style='color: #8b949e;'>{row['Obj. Expertos']}</td>
                 <td style='color: {color_potencial}; font-weight: bold;'>+{row['Potencial']:.2f}%</td>
@@ -352,6 +351,8 @@ else:
             </tr>
             """
         html_tabla += "</tbody></table>"
+        
+        # AQUÍ ESTÁ LA CORRECCIÓN CLAVE: Agregado unsafe_allow_html=True para renderizar la tabla
         st.markdown(html_tabla, unsafe_allow_html=True)
     else:
         st.info("Cargando flujos de datos...")
