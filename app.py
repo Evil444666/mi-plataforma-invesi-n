@@ -117,7 +117,7 @@ def buscar_y_ordenar_empresas(palabra_clave):
             except Exception:
                 market_cap = 0
             lista_empresas.append({'ticker': ticker_simbolo, 'nombre': nombre_oficial, 'market_cap': market_cap})
-        return sorted([e for e in lista_empresas if e['market_cap'] > 0], key=lambda x: x['market_cap'])
+        return sorted([e for e in lista_empresas if e['market_cap'] > 0], key=lambda x: x['market_cap'], reverse=True)
     except Exception:
         return []
 
@@ -199,7 +199,7 @@ with st.sidebar:
     else:
         ejecutar_analisis = False
 
-    st.markdown("<br><br><br><br>", unsafe_allow_html=True)
+    st.markdown("<br><br>", unsafe_allow_html=True)
     
     st.markdown("""
         <div class='user-profile'>
@@ -241,7 +241,7 @@ if ejecutar_analisis and ticker_elegido:
             
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # --- BLOQUE 2: GRÁFICA DE VELAS (CORREGIDA PARA PLOTLY) ---
+            # --- BLOQUE 2: GRÁFICA DE VELAS ---
             historial = empresa.history(period="5d", interval="15m")
             
             if not historial.empty:
@@ -249,7 +249,6 @@ if ejecutar_analisis and ticker_elegido:
                 
                 fechas_limpias = historial.index.strftime('%b %d, %H:%M')
                 
-                # Modificado aquí para evitar propiedades inválidas que daban error de tipo 'fill'
                 fig = go.Figure(data=[go.Candlestick(
                     x=fechas_limpias,
                     open=historial['Open'],
@@ -261,7 +260,10 @@ if ejecutar_analisis and ticker_elegido:
                     name=ticker_elegido
                 )])
                 
-                valores_eje_x = fechas_limpias[::20]
+                # Configurar paso dinámico para las etiquetas del eje X
+                total_puntos = len(fechas_limpias)
+                paso = max(1, total_puntos // 6)
+                valores_eje_x = fechas_limpias[::paso]
                 
                 fig.update_layout(
                     paper_bgcolor='#0b0e14',      
@@ -296,7 +298,7 @@ if ejecutar_analisis and ticker_elegido:
                 puntuacion += 1
                 razones.append("🟢 **Precio Atractivo:** Cotización equilibrada respecto a sus ganancias corporativas actuales (P/E < 20).")
             else:
-                razones.append("🟡 **Multiplo Exigente:** El mercado está pagando un premium alto por esta acción (P/E > 20).")
+                razones.append("🟡 **Múltiplo Exigente:** El mercado está pagando un premium alto por esta acción (P/E > 20).")
                 
             if margin_neto > 15:
                 puntuacion += 1
@@ -334,9 +336,28 @@ else:
     st.markdown("### 🔥 Top 10 Activos más Recomendados por Expertos de Wall Street")
     st.markdown("<p style='color: #8b949e; font-size: 0.9rem; margin-top:-10px;'>Actualizado en tiempo real. Basado en el consenso ponderado de analistas institucionales (Strong Buy / Buy) y proyección de precio objetivo.</p>", unsafe_allow_html=True)
     
-    with st.spinner("Sincronizando flujos de datos..."):
+    with st.spinner("Sincronizando flujos de datos de expertos..."):
         top_df = obtener_top_10_expertos()
         
     if not top_df.empty:
         html_tabla = "<table class='styled-table'>"
-        html_tabla += "<thead><tr><th>TICKER</th><th>EMPRESA</th><th>PRECIO ACT.</th><th>OBJ. MEDIO</th><th>POTENCIAL
+        html_tabla += "<thead><tr><th>TICKER</th><th>EMPRESA</th><th>PRECIO ACT.</th><th>OBJ. MEDIO</th><th>POTENCIAL</th><th>CONSENSO EXPERTO</th></tr></thead><tbody>"
+        
+        for index, row in top_df.iterrows():
+            color_potencial = "#2ecc71" if row['Potencial'] > 0 else "#e74c3c"
+            signo = "+" if row['Potencial'] > 0 else ""
+            
+            html_tabla += f"""
+            <tr>
+                <td style='font-weight: bold; color: #ffffff;'>{row['Ticker']}</td>
+                <td>{row['Empresa']}</td>
+                <td>{row['Precio Act.']}</td>
+                <td style='color: #8b949e;'>{row['Obj. Expertos']}</td>
+                <td style='color: {color_potencial}; font-weight: bold;'>{signo}{row['Potencial']:.2f}%</td>
+                <td><span style='background-color: rgba(46, 204, 113, 0.15); color: #2ecc71; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold;'>{row['Consenso']}</span></td>
+            </tr>
+            """
+        html_tabla += "</tbody></table>"
+        st.markdown(html_tabla, unsafe_allow_html=True)
+    else:
+        st.info("Cargando flujos de datos...")
