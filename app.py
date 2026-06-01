@@ -172,13 +172,92 @@ if ejecutar_analisis and ticker_elegido:
             
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # --- BLOQUE 2: GRÁFICA DE VELAS CONTINVA Y ULTRA LIMPIA ---
+            # --- BLOQUE 2: GRÁFICA DE VELAS CONTINUA Y ULTRA LIMPIA ---
             historial = empresa.history(period="5d", interval="15m")
             
             if not historial.empty:
                 st.markdown("### 📡 Velas de Alta Frecuencia (Intervalo: 15 Minutos)")
                 
-                # Formateamos las fechas de fondo para que aparezcan bonitas en los pop-ups flotantes al pasar el cursor
+                # Formateamos las fechas para los pop-ups flotantes
                 fechas_limpias = historial.index.strftime('%b %d, %H:%M')
                 
-                fig = go.Figure(data=
+                fig = go.Figure(data=[go.Candlestick(
+                    x=fechas_limpias,
+                    open=historial['Open'],
+                    high=historial['High'],
+                    low=historial['Low'],
+                    close=historial['Close'],
+                    increasing_line_color='#2ecc71',  
+                    increasing_fillcolor='#2ecc71',   
+                    decreasing_line_color='#e74c3c',  
+                    decreasing_fillcolor='#e74c3c',   
+                    name=ticker_elegido
+                )])
+                
+                # Filtro para que el eje de fechas no se sature de texto
+                valores_eje_x = fechas_limpias[::20]
+                
+                fig.update_layout(
+                    paper_bgcolor='#0b0e14',      
+                    plot_bgcolor='#161b22',       
+                    font_color='#c9d1d9',          
+                    margin=dict(l=20, r=20, t=10, b=10),
+                    xaxis_rangeslider_visible=False, 
+                    xaxis=dict(
+                        gridcolor='#21262d',       
+                        linecolor='#30363d',
+                        tickvals=valores_eje_x,    
+                        tickangle=0,               
+                        tickfont=dict(size=11, color='#8b949e')
+                    ),
+                    yaxis=dict(
+                        gridcolor='#21262d',
+                        linecolor='#30363d',
+                        side='right'               
+                    )
+                )
+                
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+            
+            st.markdown("---")
+            
+            # --- BLOQUE 3: AUDITORÍA ---
+            st.markdown("### 📋 Evaluación de Riesgos Financieros")
+            puntuacion = 0
+            razones = []
+            
+            if pe_ratio != float('inf') and pe_ratio < 20:
+                puntuacion += 1
+                razones.append("🟢 **Precio Atractivo:** Cotización equilibrada respecto a sus ganancias corporativas actuales (P/E < 20).")
+            else:
+                razones.append("🟡 **Multiplo Exigente:** El mercado está pagando un premium alto por esta acción (P/E > 20).")
+                
+            if margin_neto > 15:
+                puntuacion += 1
+                razones.append("🟢 **Ventaja Competitiva:** Margen de ganancia neto excelente superior al 15%. Gran retención de caja.")
+            else:
+                razones.append("🟡 **Rendimiento Ajustado:** Márgenes de beneficio limitados debido a costes operativos elevados (Menor al 15%).")
+                
+            if debt_to_equity < 100:
+                puntuacion += 1
+                razones.append("🟢 **Estructura Balance Lineal:** La deuda se mantiene controlada y por debajo de su patrimonio neto.")
+            else:
+                razones.append("🔴 **Carga de Deuda Pasiva:** El pasivo financiero supera los recursos propios. Incremento de riesgo crediticio.")
+            
+            for razon in razones:
+                st.markdown(razon)
+                
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            if puntuacion == 3:
+                st.success("### 💥 CONCLUSIÓN DEL SISTEMA: ALTA CONVICCIÓN DE COMPRA")
+            elif puntuacion == 2:
+                st.warning("### ⚖️ CONCLUSIÓN DEL SISTEMA: CONDICIÓN DE MANTENER / ESPERAR")
+            else:
+                st.error("### ❌ CONCLUSIÓN DEL SISTEMA: ALTA SEÑAL DE RIESGO / EVITAR")
+                
+        except Exception as e:
+            st.error(f"Error técnico de enlace de datos: {e}")
+else:
+    st.markdown("<h1 style='text-align: center; margin-top: 10%; color: #58a6ff;'>🎛️ Terminal Abierta y Lista</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #8b949e;'>Usa la barra de herramientas de la izquierda para buscar un activo financiero e iniciar el análisis algorítmico en tiempo real.</p>", unsafe_allow_html=True)
