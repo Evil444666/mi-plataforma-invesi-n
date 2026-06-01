@@ -172,13 +172,12 @@ if ejecutar_analisis and ticker_elegido:
             
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # --- BLOQUE 2: GRÁFICA CORREGIDA DE VELAS 15 MINUTOS ---
+            # --- BLOQUE 2: GRÁFICA DE VELAS CONTINUA (SIN ESPACIOS EN BLANCO) ---
             historial = empresa.history(period="5d", interval="15m")
             
             if not historial.empty:
                 st.markdown("### 📡 Velas de Alta Frecuencia (Intervalo: 15 Minutos)")
                 
-                # Corrección de los nombres de los parámetros de color internos de Plotly
                 fig = go.Figure(data=[go.Candlestick(
                     x=historial.index,
                     open=historial['Open'],
@@ -186,9 +185,9 @@ if ejecutar_analisis and ticker_elegido:
                     low=historial['Low'],
                     close=historial['Close'],
                     increasing_line_color='#2ecc71',  
-                    increasing_fillcolor='#2ecc71',   # Sin guion bajo interno
+                    increasing_fillcolor='#2ecc71',   
                     decreasing_line_color='#e74c3c',  
-                    decreasing_fillcolor='#e74c3c',   # Sin guion bajo interno
+                    decreasing_fillcolor='#e74c3c',   
                     name=ticker_elegido
                 )])
                 
@@ -200,7 +199,9 @@ if ejecutar_analisis and ticker_elegido:
                     xaxis_rangeslider_visible=False, 
                     xaxis=dict(
                         gridcolor='#21262d',       
-                        linecolor='#30363d'
+                        linecolor='#30363d',
+                        # ESTA LÍNEA ELIMINA LOS HUECOS DE NOCHES Y FINES DE SEMANA:
+                        type='category'
                     ),
                     yaxis=dict(
                         gridcolor='#21262d',
