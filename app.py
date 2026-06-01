@@ -292,7 +292,7 @@ else:
     st.markdown("### 🔥 Top 10 Activos más Recomendados por Expertos de Wall Street")
     st.markdown("<p style='color: #8b949e; font-size: 0.9rem; margin-top:-10px;'>Actualizado de forma constante. Basado en el consenso ponderado de analistas institucionales (Strong Buy / Buy) y proyección de precio objetivo.</p>", unsafe_allow_html=True)
     
-    # Matriz robusta de datos pre-cargados para evitar los bloqueos por consultas concurrentes masivas
+    # Lista limpia de diccionarios, cada línea es independiente evitando strings multilinea corruptos
     datos_estaticos = [
         {"ticker": "NVDA", "empresa": "NVIDIA Corporation", "precio": "$127.40", "objetivo": "$147.20", "potencial": "+15.54%", "consenso": "STRONG BUY"},
         {"ticker": "AMZN", "empresa": "Amazon.com, Inc.", "precio": "$184.10", "objetivo": "$211.50", "potencial": "+14.88%", "consenso": "STRONG BUY"},
@@ -302,4 +302,19 @@ else:
         {"ticker": "META", "empresa": "Meta Platforms, Inc.", "precio": "$498.90", "objetivo": "$555.00", "potencial": "+11.24%", "consenso": "BUY"},
         {"ticker": "AVGO", "empresa": "Broadcom Inc.", "precio": "$168.20", "objetivo": "$185.30", "potencial": "+10.17%", "consenso": "BUY"},
         {"ticker": "NFLX", "empresa": "Netflix, Inc.", "precio": "$660.50", "objetivo": "$718.00", "potencial": "+8.71%", "consenso": "BUY"},
-        {"ticker": "COST", "empresa": "Costco Wholesale Corp.", "precio": "$832.10", "objetivo": "$891.00", "potencial": "+7.
+        {"ticker": "COST", "empresa": "Costco Wholesale Corp.", "precio": "$832.10", "objetivo": "$891.00", "potencial": "+7.08%", "consenso": "BUY"},
+        {"ticker": "AMD", "empresa": "Advanced Micro Devices", "precio": "$154.60", "objetivo": "$165.00", "potencial": "+6.73%", "consenso": "HOLD"}
+    ]
+    
+    html_tabla = "<table class='styled-table'><thead><tr><th>TICKER</th><th>EMPRESA</th><th>PRECIO ACT.</th><th>OBJ. MEDIO</th><th>POTENCIAL</th><th>CONSENSO EXPERTO</th></tr></thead><tbody>"
+    
+    for row in datos_estaticos:
+        color_potencial = "#2ecc71" if "+" in row['potencial'] else "#e74c3c"
+        bg_badge = "rgba(46, 204, 113, 0.15)" if "BUY" in row['consenso'] else "rgba(241, 196, 15, 0.15)"
+        color_badge = "#2ecc71" if "BUY" in row['consenso'] else "#f1c40f"
+        
+        # Inyección controlada mediante variables limpias en formato de una sola línea
+        html_tabla += f"<tr><td style='font-weight: bold; color: #ffffff;'>{row['ticker']}</td><td>{row['empresa']}</td><td>{row['precio']}</td><td style='color: #8b949e;'>{row['objetivo']}</td><td style='color: {color_potencial}; font-weight: bold;'>{row['potencial']}</td><td><span style='background-color: {bg_badge}; color: {color_badge}; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold;'>{row['consenso']}</span></td></tr>"
+        
+    html_tabla += "</tbody></table>"
+    st.markdown(html_tabla, unsafe_allow_html=True)
